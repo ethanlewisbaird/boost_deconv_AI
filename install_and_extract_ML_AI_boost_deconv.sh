@@ -1,0 +1,234 @@
+#!/usr/bin/env bash
+
+echo "======================================================"
+echo " ML_AI.boost.deconv — Auto Installer + MD Extractor"
+echo "======================================================"
+
+if [ -z "$1" ]; then
+    echo "ERROR: You must provide the markdown specification file."
+    echo "Usage: bash install_and_extract_ML_AI_boost_deconv.sh project_spec.md"
+    exit 1
+fi
+
+MD_FILE="$1"
+PROJECT_DIR="ML_AI.boost.deconv_project"
+ENV_NAME="ml_ai_boost_deconv"
+
+echo "[0/9] Using markdown spec: $MD_FILE"
+
+
+# ------------------------------------------------------------
+# 1. Create Conda Environment
+# ------------------------------------------------------------
+
+echo "[1/9] Creating conda environment: $ENV_NAME"
+
+conda create -y -n $ENV_NAME python=3.9
+source $(conda info --base)/etc/profile.d/conda.sh
+conda activate $ENV_NAME
+
+echo "✓ Env created."
+
+
+# ------------------------------------------------------------
+# 2. Install Python Dependencies
+# ------------------------------------------------------------
+
+echo "[2/9] Installing Python dependencies..."
+
+pip install \
+    pandas numpy scikit-learn scipy xgboost \
+    scanpy anndata matplotlib seaborn plotly \
+    pyyaml fpdf tqdm joblib rich shap lightgbm statsmodels
+
+echo "✓ Python libs installed."
+
+
+# ------------------------------------------------------------
+# 3. Install R + Seurat
+# ------------------------------------------------------------
+
+echo "[3/9] Installing R + Seurat via conda..."
+
+conda install -y -c conda-forge r-base r-essentials r-seurat r-reticulate
+
+echo "✓ R + Seurat installed."
+
+
+# ------------------------------------------------------------
+# 4. Create Project Folder Structure
+# ------------------------------------------------------------
+
+echo "[4/9] Creating project structure at $PROJECT_DIR"
+
+mkdir -p $PROJECT_DIR/pipeline/{io,preprocessing,pseudobulk,models,plots,report,utils}
+mkdir -p $PROJECT_DIR/data/{sc,bulk,metadata}
+mkdir -p $PROJECT_DIR/results
+
+echo "✓ Folder structure ready."
+
+
+# ------------------------------------------------------------
+# 5. Create base files
+# ------------------------------------------------------------
+
+echo "[5/9] Writing config, requirements, README..."
+
+cat <<EOT > $PROJECT_DIR/requirements.txt
+pandas
+numpy
+scikit-learn
+scipy
+xgboost
+scanpy
+anndata
+matplotlib
+seaborn
+plotly
+pyyaml
+fpdf
+tqdm
+joblib
+rich
+shap
+lightgbm
+statsmodels
+EOT
+
+cat <<EOT > $PROJECT_DIR/config.yaml
+# Default config for ML_AI.boost.deconv
+use_merged_sc: true
+sc_paths:
+  merged: "data/sc/merged_sc.h5ad"
+  libraries:
+    - "data/sc/lib1_sc.h5ad"
+    - "data/sc/lib2_sc.h5ad"
+
+use_merged_bulk: false
+bulk_paths:
+  merged: "data/bulk/merged_bulk.csv"
+  individual:
+    - "data/bulk/sample1.csv"
+    - "data/bulk/sample2.csv"
+
+microscopy_csv: "data/metadata/microscopy_counts.csv"
+
+remove_mt_rpl: true
+custom_gene_list: []
+
+normalization_methods:
+  - "log1p"
+  - "scran"
+  - "counts_per_million"
+
+pseudo_bulk_samples: 500
+augmentation_factor: 2.0
+
+model_type: "xgboost"
+hyperparameter_search: true
+
+output_dir: "results/"
+report_pdf: true
+EOT
+
+cat <<EOT > $PROJECT_DIR/README.md
+# ML_AI.boost.deconv — Fully Installed
+
+Environment:
+    conda activate $ENV_NAME
+
+Run pipeline:
+    python pipeline/main.py
+
+This project was automatically extracted from markdown spec:
+    $MD_FILE
+EOT
+
+
+echo "✓ Base files created."
+
+
+# ------------------------------------------------------------
+# 6. Embed Python MD extractor
+# ------------------------------------------------------------
+
+echo "[6/9] Injecting MD extractor script..."
+
+EXTRACTOR_PATH="$PROJECT_DIR/extract_from_md.py"
+
+cat <<'EOF' > $EXTRACTOR_PATH
+import os
+import sys
+import re
+from pathlib import Path
+
+def sanitize_path(path: str) -> str:
+    return path.strip().replace("`", "").replace(" ", "")
+
+def write_file(base_dir: Path, file_path: str, content: str):
+    full_path = base_dir / sanitize_path(file_path)
+    full_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(full_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"[OK] Wrote: {full_path}")
+
+def extract_code_blocks(md_text: str):
+    pattern = re.compile(
+        r"```(?P<lang>[a-zA-Z0-9_+-]*)[^\n]*?(path=(?P<path>[^\s]+))?\s*\n(?P<code>.*?)```",
+        re.DOTALL
+    )
+    for m in pattern.finditer(md_text):
+        yield {
+            "lang": m.group("lang") or "",
+            "path": m.group("path"),
+            "code": m.group("code")
+        }
+
+def reconstruct(md_file, out_dir):
+    md_text = Path(md_file).read_text(encoding="utf-8")
+    blocks = list(extract_code_blocks(md_text))
+    if not blocks:
+        print("No code blocks found.")
+        sys.exit(1)
+
+    print(f"Found {len(blocks)} blocks.")
+    for b in blocks:
+        if not b["path"]:
+            print("[SKIP] No 'path=' defined for block.")
+            continue
+        write_file(Path(out_dir), b["path"], b["code"])
+
+    print("Extraction complete!")
+
+if __name__ == "__main__":
+    md_file = sys.argv[1]
+    out_dir = sys.argv[2]
+    reconstruct(md_file, out_dir)
+EOF
+
+echo "✓ Extractor ready."
+
+
+# ------------------------------------------------------------
+# 7. Run the extractor automatically
+# ------------------------------------------------------------
+
+echo "[7/9] Extracting files from markdown spec..."
+
+python $EXTRACTOR_PATH "$MD_FILE" "$PROJECT_DIR"
+
+echo "✓ Markdown extracted into project."
+
+
+# ------------------------------------------------------------
+# 8. Final summary
+# ------------------------------------------------------------
+
+echo "======================================================"
+echo " Installation + Extraction COMPLETE!"
+echo " Project available at: $PROJECT_DIR"
+echo
+echo " To start working:"
+echo "     conda activate $ENV_NAME"
+echo "     python pipeline/main.py"
+echo "======================================================"

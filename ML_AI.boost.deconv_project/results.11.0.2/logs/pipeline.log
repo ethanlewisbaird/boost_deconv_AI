@@ -1,0 +1,19 @@
+2025-12-01 15:59:30,170 - INFO - Starting pipeline v7
+2025-12-01 15:59:37,722 - ERROR - Validation failed: microscopy csv missing columns: {'Observed_Fraction', 'Seurat_Cluster', 'Sample'}
+2025-12-01 16:01:41,858 - INFO - Starting pipeline v7
+2025-12-01 16:01:49,338 - INFO - Config validation passed
+2025-12-01 16:09:09,791 - INFO - Starting pipeline v7
+2025-12-01 16:09:17,458 - INFO - Config validation passed
+2025-12-01 16:12:29,904 - INFO - Starting pipeline v7
+2025-12-01 16:12:36,574 - INFO - Config validation passed
+2025-12-01 16:14:45,986 - INFO - Starting pipeline v7
+2025-12-01 16:14:52,329 - INFO - Config validation passed
+2025-12-01 16:19:07,133 - INFO - Starting pipeline v7
+2025-12-01 16:19:17,286 - INFO - Config validation passed
+2025-12-01 16:22:37,777 - INFO - Starting pipeline v7
+2025-12-01 16:22:45,313 - INFO - Config validation passed
+2025-12-02 11:16:23,888 - INFO - Starting pipeline v7
+2025-12-02 11:16:30,860 - INFO - Config validation passed
+2025-12-02 11:46:02,598 - INFO - Pipeline finished
+2025-12-10 12:47:15,295 - INFO - Starting pipeline v7
+2025-12-10 12:47:23,539 - INFO - Config validation passed
